@@ -41,6 +41,9 @@ class PdfOcr {
       );
       ProcessResult result = await magickProcess.run();
       print(result.stdout);
+      if(result.exitCode != 0){
+        throw Exception('ImageMagick exited with exit code ${result.exitCode}');
+      }
     }
     List<String> tempFiles =
         tempFilesDir.listSync().map((e) => basename(e.path)).toList();
@@ -111,7 +114,7 @@ class PdfOcr {
     }
     String outputBase = basenameWithoutExtension(output.path);
     String outputExtension = extension(output.path);
-    int copyNr = 0;
+    int copyNr = 1;
     while (files.any((element) =>
         basename(element.path) == "$outputBase-$copyNr$outputExtension")) {
       copyNr++;
