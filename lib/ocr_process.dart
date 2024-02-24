@@ -3,12 +3,13 @@ import 'dart:convert';
 import 'package:path/path.dart';
 import 'dart:io';
 
-abstract class ProcessRunner {
+abstract class OcrProcess {
+  static const defaultDpi = 400;
   String? workingDirectory;
   Encoding? stdoutEncoding;
-
-  ProcessRunner({this.workingDirectory, this.stdoutEncoding});
-
+  int? dpi;
+  OcrProcess(
+      {this.workingDirectory, this.stdoutEncoding, this.dpi = defaultDpi});
   Directory get exeLocation;
   List<String> get programArguments;
   String get exeName;
@@ -16,7 +17,6 @@ abstract class ProcessRunner {
   Future<ProcessResult> run() async {
     print('Running $commandString');
     ProcessResult result = await Process.run(exe, programArguments,
-        workingDirectory: workingDirectory ?? Directory.current.path,
         stdoutEncoding: stdoutEncoding ?? systemEncoding);
     if (result.exitCode != 0) {
       print('exited with exit code ${result.exitCode}');

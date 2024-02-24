@@ -1,16 +1,13 @@
 import 'dart:io';
 
-import 'package:pdfocr/process_runner.dart';
+import 'package:pdfocr/ocr_process.dart';
 
-class MagickProcess extends ProcessRunner {
+class MagickProcess extends OcrProcess {
   static const String magickLocation = 'extern_dependencies\\ImageMagick';
-
-  static const defaultDpi = 400;
   static const defaultQuality = 100;
 
   String inputPath;
   String outputPath;
-  int? dpi;
   int? quality;
 
   @override
@@ -21,7 +18,7 @@ class MagickProcess extends ProcessRunner {
   MagickProcess({
     required this.inputPath,
     required this.outputPath,
-    this.dpi = defaultDpi,
+    super.dpi,
     this.quality = defaultQuality,
     super.workingDirectory,
     super.stdoutEncoding,
