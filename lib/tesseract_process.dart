@@ -21,6 +21,7 @@ class TesseractProcess extends OcrProcess {
     super.workingDirectory,
     Encoding? stoutEncoding,
     super.dpi,
+    super.projectRoot,
   }) : super(stdoutEncoding: stoutEncoding ?? Encoding.getByName('UTF-8'));
 
   @override

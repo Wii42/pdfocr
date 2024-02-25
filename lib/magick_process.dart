@@ -11,7 +11,7 @@ class MagickProcess extends OcrProcess {
   int? quality;
 
   @override
-  Directory exeLocation = Directory(magickLocation);
+  Directory get exeLocation => Directory(magickLocation);
   @override
   String exeName = 'magick';
 
@@ -22,6 +22,7 @@ class MagickProcess extends OcrProcess {
     this.quality = defaultQuality,
     super.workingDirectory,
     super.stdoutEncoding,
+    super.projectRoot,
   });
 
   @override

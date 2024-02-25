@@ -8,13 +8,16 @@ abstract class OcrProcess {
   String? workingDirectory;
   Encoding? stdoutEncoding;
   int? dpi;
+  Directory? projectRoot;
+
   OcrProcess(
-      {this.workingDirectory, this.stdoutEncoding, this.dpi = defaultDpi});
+      {this.workingDirectory, this.stdoutEncoding, this.dpi = defaultDpi, this.projectRoot});
   Directory get exeLocation;
   List<String> get programArguments;
   String get exeName;
 
   Future<ProcessResult> run() async {
+    print('path to exe is: $exe');
     print('Running $commandString');
     ProcessResult result = await Process.run(exe, programArguments,
         stdoutEncoding: stdoutEncoding ?? systemEncoding);
@@ -25,7 +28,14 @@ abstract class OcrProcess {
     return result;
   }
 
-  String get exe => join(exeLocation.path, exeName);
+  String get exe => join(absoluteExeLocation.path, exeName);
 
   String get commandString => "$exeName ${programArguments.join(' ')}";
+
+  Directory get absoluteExeLocation {
+    if(projectRoot != null) {
+      return Directory(join(projectRoot!.path, exeLocation.path));
+    }
+    return exeLocation;
+  }
 }

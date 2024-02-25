@@ -18,6 +18,7 @@ class PdfOcr {
   bool deleteTempFiles;
   bool overrideTempFiles;
   bool debugModeTesseractOnly;
+  Directory? projectRoot;
 
   PdfOcr({
     required this.inputFile,
@@ -29,6 +30,7 @@ class PdfOcr {
     this.deleteTempFiles = true,
     this.overrideTempFiles = false,
     this.debugModeTesseractOnly = false,
+    this.projectRoot,
   });
 
   Future<OcrList> run() async {
@@ -44,6 +46,7 @@ class PdfOcr {
           outputPath: tempFile,
           dpi: dpi,
           quality: quality,
+          projectRoot: projectRoot,
         );
         ProcessResult result = await magickProcess.run();
         String stdout = result.stdout.toString();
@@ -72,6 +75,7 @@ class PdfOcr {
         outputPath: '-',
         language: language,
         dpi: dpi,
+        projectRoot: projectRoot,
       );
       ProcessResult ocrResult = await tesseractProcess.run();
       ocrOutput.add(ocrResult.stdout.toString());
@@ -97,7 +101,6 @@ class PdfOcr {
   }
 
   Directory createTempDir({bool debugStub = false}) {
-    Directory tempFilesDir = Directory('assets\\temp\\tmp');
     if (debugStub) return tempFilesDir;
 
     if (tempFilesDir.existsSync()) {
@@ -149,5 +152,13 @@ class PdfOcr {
     final PDFDocumentCatalog catalog = await doc.catalog;
     final PDFPages pages = await catalog.getPages();
     return pages.pageCount;
+  }
+
+  Directory get tempFilesDir {
+    String relativeTempPath = 'assets\\temp\\tmp';
+    if(projectRoot != null) {
+      return Directory(join(projectRoot!.path, relativeTempPath));
+    }
+    return Directory(relativeTempPath);
   }
 }
