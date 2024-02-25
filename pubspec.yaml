@@ -11,6 +11,7 @@ environment:
 dependencies:
   path: ^1.9.0
   dart_pdf_reader: ^0.5.1
+  args: ^2.4.2
   dcli:
     git:
       url: https://github.com/onepub-dev/dcli.git
