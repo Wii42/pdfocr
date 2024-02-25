@@ -1,7 +1,8 @@
 import 'dart:io';
 
 import 'package:dart_pdf_reader/dart_pdf_reader.dart';
-import 'package:path/path.dart';
+import 'package:path/path.dart'
+    show basename, basenameWithoutExtension, extension, join;
 import 'package:pdfocr/ocr_process.dart';
 import 'package:pdfocr/tesseract_process.dart';
 
@@ -60,8 +61,7 @@ class PdfOcr {
     List<String> tempFiles =
         tempFilesDir.listSync().map((e) => basename(e.path)).toList();
     List<String> pngTempFiles = tempFiles
-        .where((e) =>
-            extension(e) == extension(tempFileName))
+        .where((e) => extension(e) == extension(tempFileName))
         .toList();
     pngTempFiles.sort((a, b) {
       int aNr = int.parse(basenameWithoutExtension(a).split('-').last);
@@ -156,7 +156,7 @@ class PdfOcr {
 
   Directory get tempFilesDir {
     String relativeTempPath = 'assets\\temp\\tmp';
-    if(projectRoot != null) {
+    if (projectRoot != null) {
       return Directory(join(projectRoot!.path, relativeTempPath));
     }
     return Directory(relativeTempPath);

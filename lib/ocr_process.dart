@@ -1,6 +1,5 @@
 import 'dart:convert';
-
-import 'package:path/path.dart';
+import 'package:path/path.dart' show join;
 import 'dart:io';
 
 abstract class OcrProcess {
@@ -11,7 +10,10 @@ abstract class OcrProcess {
   Directory? projectRoot;
 
   OcrProcess(
-      {this.workingDirectory, this.stdoutEncoding, this.dpi = defaultDpi, this.projectRoot});
+      {this.workingDirectory,
+      this.stdoutEncoding,
+      this.dpi = defaultDpi,
+      this.projectRoot});
   Directory get exeLocation;
   List<String> get programArguments;
   String get exeName;
@@ -33,7 +35,7 @@ abstract class OcrProcess {
   String get commandString => "$exeName ${programArguments.join(' ')}";
 
   Directory get absoluteExeLocation {
-    if(projectRoot != null) {
+    if (projectRoot != null) {
       return Directory(join(projectRoot!.path, exeLocation.path));
     }
     return exeLocation;
