@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:dart_pdf_reader/dart_pdf_reader.dart';
 import 'package:path/path.dart';
 import 'package:pdfocr/ocr_process.dart';
 import 'package:pdfocr/tesseract_process.dart';
@@ -31,30 +32,46 @@ class PdfOcr {
   });
 
   Future<OcrList> run() async {
+    int pagesCount = await getPagesCount();
+    print('Found $pagesCount pages in $inputFile');
     Directory tempFilesDir = createTempDir(debugStub: debugModeTesseractOnly);
     String tempFileName = '${basenameWithoutExtension(inputFile)}-%d.png';
     if (!debugModeTesseractOnly) {
-      String tempFile = join(tempFilesDir.path, tempFileName);
-      OcrProcess magickProcess = MagickProcess(
-        inputPath: inputFile,
-        outputPath: tempFile,
-      );
-      ProcessResult result = await magickProcess.run();
-      print(result.stdout);
-      if(result.exitCode != 0){
-        throw Exception('ImageMagick exited with exit code ${result.exitCode}');
+      for (int i = 0; i < pagesCount; i++) {
+        String tempFile = join(tempFilesDir.path, tempFileName);
+        OcrProcess magickProcess = MagickProcess(
+          inputPath: '$inputFile[$i]',
+          outputPath: tempFile,
+          dpi: dpi,
+          quality: quality,
+        );
+        ProcessResult result = await magickProcess.run();
+        String stdout = result.stdout.toString();
+        if (stdout.isNotEmpty) print(stdout);
+        if (result.exitCode != 0) {
+          throw Exception(
+              'ImageMagick exited with exit code ${result.exitCode}');
+        }
       }
     }
     List<String> tempFiles =
         tempFilesDir.listSync().map((e) => basename(e.path)).toList();
     List<String> pngTempFiles = tempFiles
-        .where((e) => extension(e) == extension(tempFileName))
+        .where((e) =>
+            extension(e) == extension(tempFileName))
         .toList();
+    pngTempFiles.sort((a, b) {
+      int aNr = int.parse(basenameWithoutExtension(a).split('-').last);
+      int bNr = int.parse(basenameWithoutExtension(b).split('-').last);
+      return aNr.compareTo(bNr);
+    });
     List<String> ocrOutput = [];
     for (String tempFile in pngTempFiles) {
       OcrProcess tesseractProcess = TesseractProcess(
         inputPath: join(tempFilesDir.path, tempFile),
         outputPath: '-',
+        language: language,
+        dpi: dpi,
       );
       ProcessResult ocrResult = await tesseractProcess.run();
       ocrOutput.add(ocrResult.stdout.toString());
@@ -123,5 +140,14 @@ class PdfOcr {
     print('Output file already exists. Saving as ${basename(output.path)}');
 
     return output;
+  }
+
+  Future<int> getPagesCount() async {
+    final ByteStream stream = ByteStream(File(inputFile).readAsBytesSync());
+    final PDFDocument doc = await PDFParser(stream).parse();
+
+    final PDFDocumentCatalog catalog = await doc.catalog;
+    final PDFPages pages = await catalog.getPages();
+    return pages.pageCount;
   }
 }

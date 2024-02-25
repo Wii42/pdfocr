@@ -1,4 +1,5 @@
 
+import 'dart:io';
 import 'package:path/path.dart';
 import 'package:pdfocr/ocr_list.dart';
 import 'package:pdfocr/pdfocr.dart';
@@ -6,10 +7,12 @@ import 'package:pdfocr/pdfocr.dart';
 void main([List<String> args = const <String>[]]) async {
   String inputPath = 'assets\\test_files';
   String outputPath = 'assets\\output';
-  String inputFile = 'Osterhammel-Verwandlung.pdf';
+  String inputFile = 'Eric Hobsbawm - Age Of Revolution 1789 -1848.pdf';
   PdfOcr pdfOcr = PdfOcr(
       inputFile: join(inputPath, inputFile),
       outputFile: join(outputPath, '${basenameWithoutExtension(inputFile)}.txt'),
+      dpi: 800,
+      language: 'eng',
       deleteTempFiles: false,
       overrideTempFiles: true,
       debugModeTesseractOnly: false);
