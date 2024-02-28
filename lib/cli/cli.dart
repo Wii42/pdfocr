@@ -2,15 +2,18 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:pdfocr/helper/string_extension.dart';
+import 'package:pdfocr/pdfocr/about_command/about_magick.dart';
+import 'package:pdfocr/pdfocr/about_command/about_tesseract.dart';
 import 'package:pdfocr/pdfocr/pdfocr.dart';
 
-const String version = '0.0.1';
+import '../pdfocr/about_command/about_command.dart';
 
 class Cli {
   static const String version = '0.0.1';
-  Directory projectRoot, tempFilesDir;
+  static int defaultIndentation = 2;
+  Directory tempFilesDir;
   ArgParser parser = buildParser();
-  Cli({required this.projectRoot, required this.tempFilesDir});
+  Cli({required this.tempFilesDir});
 
   PdfOcr? parseArgs(List<String> args) {
     final ArgParser parser = buildParser();
@@ -30,7 +33,42 @@ class Cli {
       print(version);
       return null;
     }
+    if (results.wasParsed(Args.about.name)) {
+      printAboutText();
+      return null;
+    }
     return buildPdfOcr(results);
+  }
+
+  void printAboutText() {
+    print('');
+    print("About pdfocr:");
+    String text =
+        "pdfocr uses Tesseract-OCR and ImageMagick to convert PDF files to text files.\n"
+        "The tool works by converting each page of the PDF to a PNG file using ImageMagick and then using Tesseract-OCR to convert the PNG to a text file.\n"
+        "Both Tesseract-OCR and ImageMagick must be installed and added to the system PATH for the tool to work.";
+    print(text.indent(defaultIndentation));
+    print('');
+    for (AboutCommand command in AboutCommand.list) {
+      print('About ${command.programName}:');
+      if (!command.isInstalled()) {
+        print(
+            'WARNING: ${command.programName} is not installed or not added to the system PATH.'
+                .indent(defaultIndentation));
+      } else {
+        print('Install path: ${command.getPath()}'.indent(defaultIndentation));
+        print('Installed version: ${command.getVersion()}'
+            .indent(defaultIndentation));
+      }
+      if (command.testedVersions.isNotEmpty) {
+        print(
+            'pdfocr was tested with ${command.programName} ${command.testedVersions.length == 1 ? 'version' : 'versions'} ${command.testedVersions.join(', ')}'
+                .indent(defaultIndentation));
+      }
+      print('More information about ${command.programName}: ${command.website}'
+          .indent(defaultIndentation));
+      print('');
+    }
   }
 
   PdfOcr? buildPdfOcr(ArgResults results) {
@@ -66,7 +104,6 @@ class Cli {
       language: langauge,
       dpi: dpi,
       quality: quality,
-      projectRoot: projectRoot,
       tempFilesDir: tempFilesDir,
       page: page,
       pageLimitMarkingsInTxt: markings,
@@ -74,7 +111,6 @@ class Cli {
   }
 
   void printHelpText() {
-    int indentation = 2;
     print('');
     print('Usage: pdfocr $argumentNames [OPTIONS]');
     print('');
@@ -82,11 +118,11 @@ class Cli {
     print('');
     print('Argumenst:');
     for (ArgumentDescription arg in argumentDescriptions) {
-      print(arg.toString().indent(indentation));
+      print(arg.toString().indent(defaultIndentation));
     }
     print('');
     print('Options:');
-    print(parser.usage.indent(indentation));
+    print(parser.usage.indent(defaultIndentation));
     print('');
   }
 
@@ -130,6 +166,10 @@ class Cli {
         negatable: false,
         help: 'Print the tool version.',
       )
+      ..addFlag(Args.about.name,
+          abbr: 'a',
+          negatable: false,
+          help: 'Print more information about the tool.')
       ..addOption(
         Args.language.name,
         abbr: 'l',
@@ -146,8 +186,7 @@ class Cli {
       ..addOption(
         Args.quality.name,
         abbr: 'q',
-        help:
-            'Quality of the temporary generated PNG files.',
+        help: 'Quality of the temporary generated PNG files.',
         defaultsTo: '100',
       )
       ..addOption(
@@ -187,6 +226,7 @@ class ArgumentDescription {
 enum Args {
   help,
   version,
+  about,
   language,
   dpi,
   quality,

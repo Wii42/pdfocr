@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:args/args.dart';
 import 'package:dcli/dcli.dart' show DartScript;
 import 'package:path/path.dart' show basenameWithoutExtension, join;
 import 'package:pdfocr/cli/cli.dart';
@@ -9,7 +8,7 @@ import 'package:pdfocr/pdfocr/pdfocr.dart';
 void main([List<String> args = const <String>[]]) async {
   //test();
   PdfOcr? pdfocr = //test();
-      Cli(projectRoot: projectRoot, tempFilesDir: tempFilesDir).parseArgs(args);
+      Cli(tempFilesDir: tempFilesDir).parseArgs(args);
   if (pdfocr == null) {
     return;
   }
@@ -33,7 +32,6 @@ PdfOcr test() {
       deleteTempFiles: false,
       overrideTempFiles: true,
       debugModeTesseractOnly: false,
-      projectRoot: projectRoot,
       tempFilesDir: tempFilesDir,
       page: null,
       pageLimitMarkingsInTxt: true);

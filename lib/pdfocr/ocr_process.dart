@@ -2,25 +2,21 @@ import 'dart:convert';
 import 'package:path/path.dart' show join;
 import 'dart:io';
 
+import 'package:pdfocr/pdfocr/about_command/about_command.dart';
+
 abstract class OcrProcess {
   static const defaultDpi = 400;
-  String? workingDirectory;
   Encoding? stdoutEncoding;
   int? dpi;
-  Directory? projectRoot;
 
-  OcrProcess(
-      {this.workingDirectory,
-      this.stdoutEncoding,
-      this.dpi = defaultDpi,
-      this.projectRoot});
-  Directory get exeLocation;
+  OcrProcess({this.stdoutEncoding, this.dpi = defaultDpi});
   List<String> get programArguments;
-  String get exeName;
+  String get exeName => about.exeName;
+  AboutCommand get about;
 
   Future<ProcessResult> run() async {
     print('Running $commandString');
-    ProcessResult result = await Process.run(exe, programArguments,
+    ProcessResult result = await Process.run(exeName, programArguments,
         stdoutEncoding: stdoutEncoding ?? systemEncoding);
     if (result.exitCode != 0) {
       print('exited with exit code ${result.exitCode}');
@@ -29,14 +25,5 @@ abstract class OcrProcess {
     return result;
   }
 
-  String get exe => join(absoluteExeLocation.path, exeName);
-
   String get commandString => "$exeName ${programArguments.join(' ')}";
-
-  Directory get absoluteExeLocation {
-    if (projectRoot != null) {
-      return Directory(join(projectRoot!.path, exeLocation.path));
-    }
-    return exeLocation;
-  }
 }

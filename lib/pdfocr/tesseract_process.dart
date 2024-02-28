@@ -1,28 +1,26 @@
 import 'dart:convert';
-import 'dart:io';
+import 'package:pdfocr/pdfocr/about_command/about_tesseract.dart';
 
 import 'ocr_process.dart';
 
 class TesseractProcess extends OcrProcess {
-  static const String tesseractLocation = 'extern_dependencies\\Tesseract-OCR';
+  static const String defaultLanguage = 'deu';
+  static const String defaultEncoding = 'UTF-8';
+  static const String defaultOutputPath = '-'; //stdout
+
   String inputPath;
   String outputPath;
   String? language;
 
-  @override
-  Directory get exeLocation => Directory(tesseractLocation);
-  @override
-  String get exeName => 'tesseract';
-
   TesseractProcess({
     required this.inputPath,
-    this.outputPath = '-',
-    this.language = 'deu',
-    super.workingDirectory,
+    this.outputPath = defaultOutputPath,
+    this.language = defaultLanguage,
     Encoding? stoutEncoding,
     super.dpi,
-    super.projectRoot,
-  }) : super(stdoutEncoding: stoutEncoding ?? Encoding.getByName('UTF-8'));
+  }) : super(
+          stdoutEncoding: stoutEncoding ?? Encoding.getByName(defaultEncoding),
+        );
 
   @override
   List<String> get programArguments {
@@ -39,4 +37,7 @@ class TesseractProcess extends OcrProcess {
       ],
     ];
   }
+
+  @override
+  AboutTesseract get about => AboutTesseract();
 }

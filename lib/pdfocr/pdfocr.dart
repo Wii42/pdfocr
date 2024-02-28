@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dart_pdf_reader/dart_pdf_reader.dart';
 import 'package:path/path.dart'
     show basename, basenameWithoutExtension, extension, join;
+import 'package:pdfocr/pdfocr/about_command/about_command.dart';
 import 'package:pdfocr/pdfocr/tesseract_process.dart';
 
 import 'magick_process.dart';
@@ -20,7 +21,6 @@ class PdfOcr {
   bool deleteTempFiles;
   bool overrideTempFiles;
   bool debugModeTesseractOnly;
-  Directory projectRoot;
   Directory tempFilesDir;
   int? page;
   bool pageLimitMarkingsInTxt;
@@ -35,16 +35,99 @@ class PdfOcr {
     this.deleteTempFiles = true,
     this.overrideTempFiles = false,
     this.debugModeTesseractOnly = false,
-    required this.projectRoot,
     required this.tempFilesDir,
     this.page,
     this.pageLimitMarkingsInTxt = true,
   });
 
   Future<OcrList> run() async {
+    checkForFileAndCommands();
+
+    ({int start, int end}) rangeToConvert = await getRangeToConvert();
+    Directory tempFilesDir = await createTempPNGs(rangeToConvert);
+
+    List<String> pngTempFiles = sortTempFiles(tempFilesDir);
+    List<OcrResult> ocrOutput = await runOcrOnFiles(tempFilesDir, pngTempFiles);
+
+    if (deleteTempFiles) {
+      tempFilesDir.deleteSync(recursive: true);
+    }
+    OcrList ocrList = createOcrList(ocrOutput);
+    print(ocrList.wholeText);
+    print('');
+
+    if (outputFile != null) {
+      saveOutputToFile(ocrList);
+    }
+    return ocrList;
+  }
+
+  void saveOutputToFile(OcrList ocrList) {
+    if (outputFile!.isNotEmpty && outputFile != '-') {
+      saveOutput(ocrList);
+    } else {
+      print("'$outputFile' is not a valid output file. Skipping save.");
+    }
+  }
+
+  OcrList createOcrList(List<OcrResult> ocrOutput) {
+    String ocrListTitle = basename(inputFile);
+    if (page != null) {
+      ocrListTitle += ' page $page';
+    }
+    OcrList ocrList = OcrList(ocrListTitle, ocrOutput,
+        pageLimitMarkings: pageLimitMarkingsInTxt);
+    ocrList.clean();
+    ocrList.sort();
+    return ocrList;
+  }
+
+  Future<List<OcrResult>> runOcrOnFiles(
+      Directory tempFilesDir, List<String> pngTempFiles) async {
+    List<OcrResult> ocrOutput = [];
+    for (String tempFile in pngTempFiles) {
+      OcrProcess tesseractProcess = TesseractProcess(
+        inputPath: join(tempFilesDir.path, tempFile),
+        outputPath: '-',
+        language: language,
+        dpi: dpi,
+      );
+      ProcessResult ocrResult = await tesseractProcess.run();
+      int pageNumber =
+          int.parse(basenameWithoutExtension(tempFile).split('-').last) + 1;
+      ocrOutput
+          .add(OcrResult.fromString(ocrResult.stdout.toString(), pageNumber));
+    }
+    return ocrOutput;
+  }
+
+  List<String> sortTempFiles(Directory tempFilesDir) {
+    List<String> tempFiles =
+        tempFilesDir.listSync().map((e) => basename(e.path)).toList();
+    List<String> pngTempFiles = tempFiles
+        .where((e) => extension(e) == extension(tempFileName))
+        .toList();
+    pngTempFiles.sort((a, b) {
+      int aNr = int.parse(basenameWithoutExtension(a).split('-').last);
+      int bNr = int.parse(basenameWithoutExtension(b).split('-').last);
+      return aNr.compareTo(bNr);
+    });
+    return pngTempFiles;
+  }
+
+  void checkForFileAndCommands() {
     if (!File(inputFile).existsSync()) {
       throw Exception('File $inputFile does not exist');
     }
+    for (AboutCommand command in AboutCommand.list) {
+      if (!command.isInstalled()) {
+        throw Exception(
+            '${command.programName} is not installed or not added to the system PATH.');
+      }
+    }
+  }
+
+  Future<({int end, int start})> getRangeToConvert() async {
     int pagesCount = await getPagesCount();
     int start;
     int end;
@@ -59,79 +142,35 @@ class PdfOcr {
       print('Found $pagesCount pages in $inputFile');
       end = pagesCount;
     }
-
-    Directory tempFilesDir = createTempDir(debugStub: debugModeTesseractOnly);
-    String tempFileName = '${basenameWithoutExtension(inputFile)}-%d.png';
-    if (!debugModeTesseractOnly) {
-      for (int i = start; i < end; i++) {
-        String tempFile = join(tempFilesDir.path, tempFileName);
-        OcrProcess magickProcess = MagickProcess(
-          inputPath: '$inputFile[$i]',
-          outputPath: tempFile,
-          dpi: dpi,
-          quality: quality,
-          projectRoot: projectRoot,
-        );
-        ProcessResult result = await magickProcess.run();
-        String stdout = result.stdout.toString();
-        if (stdout.isNotEmpty) print(stdout);
-        if (result.exitCode != 0) {
-          throw Exception(
-              'ImageMagick exited with exit code ${result.exitCode}');
-        }
-      }
-    }
-    List<String> tempFiles =
-        tempFilesDir.listSync().map((e) => basename(e.path)).toList();
-    List<String> pngTempFiles = tempFiles
-        .where((e) => extension(e) == extension(tempFileName))
-        .toList();
-    pngTempFiles.sort((a, b) {
-      int aNr = int.parse(basenameWithoutExtension(a).split('-').last);
-      int bNr = int.parse(basenameWithoutExtension(b).split('-').last);
-      return aNr.compareTo(bNr);
-    });
-    List<OcrResult> ocrOutput = [];
-    for (String tempFile in pngTempFiles) {
-      OcrProcess tesseractProcess = TesseractProcess(
-        inputPath: join(tempFilesDir.path, tempFile),
-        outputPath: '-',
-        language: language,
-        dpi: dpi,
-        projectRoot: projectRoot,
-      );
-      ProcessResult ocrResult = await tesseractProcess.run();
-      int pageNumber =
-          int.parse(basenameWithoutExtension(tempFile).split('-').last) + 1;
-      ocrOutput
-          .add(OcrResult.fromString(ocrResult.stdout.toString(), pageNumber));
-    }
-    print('parsing ocr output...');
-
-    if (deleteTempFiles) {
-      tempFilesDir.deleteSync(recursive: true);
-    }
-    String ocrListTitle = basename(inputFile);
-    if (page != null) {
-      ocrListTitle += ' page $page';
-    }
-    OcrList ocrList = OcrList(ocrListTitle, ocrOutput,
-        pageLimitMarkings: pageLimitMarkingsInTxt);
-    ocrList.clean();
-    ocrList.sort();
-    print(ocrList.wholeText);
-    print('');
-    //print(ocrList.results.first.lines);
-    if (outputFile != null) {
-      if (outputFile!.isNotEmpty && outputFile != '-') {
-        saveOutput(ocrList);
-      } else {
-        print("'$outputFile' is not a valid output file. Skipping save.");
-      }
-    }
-
-    return ocrList;
+    return (start: start, end: end);
   }
+
+  Future<Directory> createTempPNGs(
+      ({int start, int end}) rangeToConvert) async {
+    Directory tempFilesDir = createTempDir(debugStub: debugModeTesseractOnly);
+    if (debugModeTesseractOnly) {
+      return tempFilesDir;
+    }
+    for (int i = rangeToConvert.start; i < rangeToConvert.end; i++) {
+      String tempFile = join(tempFilesDir.path, tempFileName);
+      OcrProcess magickProcess = MagickProcess(
+        inputPath: '$inputFile[$i]',
+        outputPath: tempFile,
+        dpi: dpi,
+        quality: quality,
+      );
+      ProcessResult result = await magickProcess.run();
+      String stdout = result.stdout.toString();
+      if (stdout.isNotEmpty) print(stdout);
+      if (result.exitCode != 0) {
+        throw Exception(
+            'ImageMagick exited with exit code ${result.exitCode}:\n${result.stderr}');
+      }
+    }
+    return tempFilesDir;
+  }
+
+  String get tempFileName => '${basenameWithoutExtension(inputFile)}-%d.png';
 
   Directory createTempDir({bool debugStub = false}) {
     Directory tempFilesSubDir = Directory(join(tempFilesDir.path, 'tmp'));
@@ -198,6 +237,6 @@ class PdfOcr {
 
   @override
   String toString() {
-    return "PdfOcr(inputFile: $inputFile, outputFile: $outputFile, dpi: $dpi, quality: $quality, language: $language, workingDirectory: $workingDirectory, deleteTempFiles: $deleteTempFiles, overrideTempFiles: $overrideTempFiles, debugModeTesseractOnly: $debugModeTesseractOnly, projectRoot: $projectRoot, tempFilesDir: $tempFilesDir)";
+    return "PdfOcr(inputFile: $inputFile, outputFile: $outputFile, dpi: $dpi, quality: $quality, language: $language, workingDirectory: $workingDirectory, deleteTempFiles: $deleteTempFiles, overrideTempFiles: $overrideTempFiles, debugModeTesseractOnly: $debugModeTesseractOnly, tempFilesDir: $tempFilesDir)";
   }
 }
