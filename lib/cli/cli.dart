@@ -114,7 +114,7 @@ class Cli {
     print('');
     print('About: Converts a PDF file to a text file using OCR.');
     print('');
-    print('Argumenst:');
+    print('Arguments:');
     for (ArgumentDescription arg in argumentDescriptions) {
       print(arg.toString().indent(defaultIndentation));
     }
