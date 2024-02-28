@@ -2,7 +2,7 @@ import 'package:pdfocr/pdfocr/about_command/about_command.dart';
 
 class AboutMagick extends AboutCommand {
   @override
-  String exeName = 'magickk';
+  String exeName = 'magick';
   @override
   String programName = 'ImageMagick';
   @override

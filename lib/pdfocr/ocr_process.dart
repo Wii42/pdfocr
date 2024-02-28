@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:path/path.dart' show join;
 import 'dart:io';
 
 import 'package:pdfocr/pdfocr/about_command/about_command.dart';

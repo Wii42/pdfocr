@@ -2,8 +2,6 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:pdfocr/helper/string_extension.dart';
-import 'package:pdfocr/pdfocr/about_command/about_magick.dart';
-import 'package:pdfocr/pdfocr/about_command/about_tesseract.dart';
 import 'package:pdfocr/pdfocr/pdfocr.dart';
 
 import '../pdfocr/about_command/about_command.dart';

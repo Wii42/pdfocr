@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:dart_pdf_reader/dart_pdf_reader.dart';
 import 'package:path/path.dart'
     show basename, basenameWithoutExtension, extension, join;
+import 'package:pdfocr/helper/directory_extension.dart';
+import 'package:pdfocr/helper/range.dart';
 import 'package:pdfocr/pdfocr/about_command/about_command.dart';
 import 'package:pdfocr/pdfocr/tesseract_process.dart';
 
@@ -20,6 +22,7 @@ class PdfOcr {
   String? workingDirectory;
   bool deleteTempFiles;
   bool overrideTempFiles;
+  bool renameTempDirIfExists;
   bool debugModeTesseractOnly;
   Directory tempFilesDir;
   int? page;
@@ -38,12 +41,13 @@ class PdfOcr {
     required this.tempFilesDir,
     this.page,
     this.pageLimitMarkingsInTxt = true,
+    this.renameTempDirIfExists = true,
   });
 
   Future<OcrList> run() async {
     checkForFileAndCommands();
 
-    ({int start, int end}) rangeToConvert = await getRangeToConvert();
+    Range rangeToConvert = await getRangeToConvert();
     Directory tempFilesDir = await createTempPNGs(rangeToConvert);
 
     List<String> pngTempFiles = sortTempFiles(tempFilesDir);
@@ -117,7 +121,7 @@ class PdfOcr {
 
   void checkForFileAndCommands() {
     if (!File(inputFile).existsSync()) {
-      throw Exception('File $inputFile does not exist');
+      throw Exception("File '$inputFile' does not exist");
     }
     for (AboutCommand command in AboutCommand.list) {
       if (!command.isInstalled()) {
@@ -127,7 +131,7 @@ class PdfOcr {
     }
   }
 
-  Future<({int end, int start})> getRangeToConvert() async {
+  Future<Range> getRangeToConvert() async {
     int pagesCount = await getPagesCount();
     int start;
     int end;
@@ -142,16 +146,15 @@ class PdfOcr {
       print('Found $pagesCount pages in $inputFile');
       end = pagesCount;
     }
-    return (start: start, end: end);
+    return Range(start, end);
   }
 
-  Future<Directory> createTempPNGs(
-      ({int start, int end}) rangeToConvert) async {
+  Future<Directory> createTempPNGs(Range rangeToConvert) async {
     Directory tempFilesDir = createTempDir(debugStub: debugModeTesseractOnly);
     if (debugModeTesseractOnly) {
       return tempFilesDir;
     }
-    for (int i = rangeToConvert.start; i < rangeToConvert.end; i++) {
+    for (int i in rangeToConvert.iterable) {
       String tempFile = join(tempFilesDir.path, tempFileName);
       OcrProcess magickProcess = MagickProcess(
         inputPath: '$inputFile[$i]',
@@ -173,14 +176,22 @@ class PdfOcr {
   String get tempFileName => '${basenameWithoutExtension(inputFile)}-%d.png';
 
   Directory createTempDir({bool debugStub = false}) {
-    Directory tempFilesSubDir = Directory(join(tempFilesDir.path, 'tmp'));
+    String subDirName = 'tmp';
+    Directory tempFilesSubDir = Directory(join(tempFilesDir.path, subDirName));
     if (debugStub) return tempFilesSubDir;
 
     if (tempFilesSubDir.existsSync()) {
       if (overrideTempFiles) {
         tempFilesSubDir.deleteSync(recursive: true);
       } else {
-        throw Exception('Directory for temp file already exists');
+        if (renameTempDirIfExists) {
+          String newTempDirName =
+              tempFilesDir.adjustEntityNameIfAlreadyExistsInside(subDirName);
+          tempFilesSubDir = Directory(join(tempFilesDir.path, newTempDirName));
+        } else {
+          throw Exception(
+              "Directory for temp files already exists, this means either that the directory is used by another process or that the temp files were not deleted after the last run.");
+        }
       }
     }
     tempFilesSubDir.createSync(recursive: true);
@@ -195,44 +206,27 @@ class PdfOcr {
     }
     output = _adjustNameIfFileAlreadyExists(outputDir, output);
 
+    print('Saving output to ${output.path}');
     output.writeAsStringSync(ocrList.wholeText);
   }
 
   File _adjustNameIfFileAlreadyExists(Directory outputDir, File output) {
-    List<FileSystemEntity> files = outputDir.listSync();
-    if (files
-        .every((element) => basename(element.path) != basename(output.path))) {
-      print('Saving output to ${output.path}');
-      return output;
+    String outputName = basename(output.path);
+    String newOutputName =
+        outputDir.adjustEntityNameIfAlreadyExistsInside(outputName);
+    if (newOutputName != outputName) {
+      output = outputDir.fileInside(newOutputName);
+      print('Output file already exists. Saving as $newOutputName');
     }
-    String outputBase = basenameWithoutExtension(output.path);
-    String outputExtension = extension(output.path);
-    int copyNr = 1;
-    while (files.any((element) =>
-        basename(element.path) == "$outputBase-$copyNr$outputExtension")) {
-      copyNr++;
-    }
-    output = File(join(outputDir.path, "$outputBase-$copyNr$outputExtension"));
-    print('Output file already exists. Saving as ${basename(output.path)}');
-
     return output;
   }
 
   Future<int> getPagesCount() async {
-    final ByteStream stream = ByteStream(File(inputFile).readAsBytesSync());
-    final PDFDocument doc = await PDFParser(stream).parse();
-
-    final PDFDocumentCatalog catalog = await doc.catalog;
-    final PDFPages pages = await catalog.getPages();
+    ByteStream stream = ByteStream(File(inputFile).readAsBytesSync());
+    PDFDocument doc = await PDFParser(stream).parse();
+    PDFDocumentCatalog catalog = await doc.catalog;
+    PDFPages pages = await catalog.getPages();
     return pages.pageCount;
-  }
-
-  bool endsWithIndex(String input) {
-    // Define a regular expression pattern to match "[d]" where d is a positive integer
-    RegExp regex = RegExp(r"\[\d+\]$");
-
-    // Check if the input string matches the pattern
-    return regex.hasMatch(input);
   }
 
   @override
