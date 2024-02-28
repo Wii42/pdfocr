@@ -2,7 +2,7 @@
 
 **Command line tool which converts a PDF file to a text file using OCR.**
 
-pdfocr uses [Tesseract-OCR](https://imagemagick.org) and [ImageMagick](https://tesseract-ocr.github.io) to convert PDF
+pdfocr uses [Tesseract-OCR](https://tesseract-ocr.github.io) and [ImageMagick](https://imagemagick.org) to convert PDF
 files to text files.
 The tool works by converting each page of the PDF to a PNG file using ImageMagick and then using Tesseract-OCR to
 convert the PNG to a text file.
