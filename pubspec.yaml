@@ -5,19 +5,19 @@ publish_to: 'none'
 # repository: https://github.com/my_org/my_repo
 
 environment:
-  sdk: ^3.3.0
+  sdk: ^3.8.0
 
 # Add regular dependencies here.
 dependencies:
-  path: ^1.9.0
-  dart_pdf_reader: ^0.5.1
-  args: ^2.4.2
-  dcli:
-    git:
-      url: https://github.com/onepub-dev/dcli.git
-      path: dcli
-      ref: 1ccfc5c
+  path: ^1.9.1
+  dart_pdf_reader: ^2.1.0
+  args: ^2.7.0
+  dcli: ^7.0.3
+    #git:
+      #url: https://github.com/onepub-dev/dcli.git
+      #path: dcli
+      #ref: 1ccfc5c
 
 dev_dependencies:
-  lints: ^3.0.0
-  test: ^1.25.2
+  lints: ^6.0.0
+  test: ^1.26.2
