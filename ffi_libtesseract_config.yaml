@@ -1,0 +1,15 @@
+name: 'TesseractBindings'
+description: 'Bindings for libtesseract of the Tesseract OCR engine.'
+output: 'lib/ffigen/tesseract_bindings.dart'
+import:
+  symbol-files:
+    - 'lib/ffigen/symbols/leptonica_symbols.yaml'
+headers:
+  entry-points:
+    - 'ffi/tesseract/capi.h'
+  include-directives:
+    - 'ffi/tesseract/capi.h'
+    - '!struct Pix'
+comments:
+  style: any
+  length: full

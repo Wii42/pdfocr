@@ -17,7 +17,24 @@ dependencies:
       #url: https://github.com/onepub-dev/dcli.git
       #path: dcli
       #ref: 1ccfc5c
+  ffi: ^2.1.4
 
 dev_dependencies:
   lints: ^6.0.0
   test: ^1.26.2
+  ffigen: ^19.0.0
+
+ffigen:
+  name: 'TesseractBindings'
+  description: 'Bindings for libtesseract of the Tesseract OCR engine.'
+  output: 'lib/ffigen/tesseract_bindings.dart'
+  headers:
+    entry-points:
+      - 'ffi/tesseract/capi.h'
+    include-directives:
+      - 'ffi/tesseract/capi.h'
+  comments:
+    style: any
+    length: full
+
+

@@ -1,0 +1,15 @@
+name: 'LeptonicaBindings'
+description: 'Bindings for libleptonica of the Tesseract OCR engine.'
+output:
+  bindings: 'lib/ffigen/leptonica_bindings.dart'
+  symbol-file:
+    output: 'lib/ffigen/symbols/leptonica_symbols.yaml'
+    import-path: 'package:pdfocr/ffigen/leptonica_bindings.dart'
+headers:
+  entry-points:
+    - 'ffi/leptonica/leptonica.h'
+  include-directives:
+    - 'ffi/leptonica/leptonica.h'
+comments:
+  style: any
+  length: full

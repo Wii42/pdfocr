@@ -1,0 +1,14 @@
+format_version: 1.0.0
+files:
+  package:pdfocr/ffigen/leptonica_bindings.dart:
+    used-config:
+      ffi-native: false
+    symbols:
+      c:@F@pixDestroy:
+        name: pixDestroy
+      c:@F@pixRead:
+        name: pixRead
+      c:@S@Pix:
+        name: Pix
+      c:leptonica.h@T@PIX:
+        name: PIX
